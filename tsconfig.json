@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "preserveConstEnums": true,
+    "sourceMap": true,
+    "strict": true,
+    "noImplicitAny": true,
+    "declaration": true,
+    "target": "ES6",
+    "outDir": "dist/"
+  },
+  "include": [
+    "src/**/*",
+    "types/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "test/**/*.spec.ts"
+  ]
+}
