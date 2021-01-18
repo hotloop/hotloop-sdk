@@ -1,3 +1,5 @@
+import { GcpTokenProvider, TokenProvider } from './TokenProvider'
+
 const axiosRetry = require('axios-retry')
 import Axios, { AxiosInstance, AxiosRequestConfig } from 'axios'
 import { IAxiosRetryConfig } from 'axios-retry'
@@ -31,7 +33,8 @@ class HotLoopSdkFactory {
    */
   static getInstance (token: string, opts: SdkOptions): HotLoopSdk {
     const url = 'https://europe-west3-hotloop-289416.cloudfunctions.net/'
-    return new HotLoop(url, token, opts)
+    const tokenProvider: TokenProvider = new GcpTokenProvider(token)
+    return new HotLoop(url, tokenProvider, opts)
   }
 }
 
@@ -47,21 +50,29 @@ class HotLoop implements HotLoopSdk {
   /**
    * @constructor
    * @param url The base URL for the HotLoop API
-   * @param token The user's bearer token
+   * @param tokenProvider A mechanism for fetching tokens for the request
    * @param opts The options required to configure the SDK
    */
-  constructor (url: string, token: string, opts: SdkOptions) {
+  constructor (url: string, private tokenProvider: TokenProvider, opts: SdkOptions) {
     const config: AxiosRequestConfig = {
       baseURL: url,
       timeout: opts.timeout || 5000,
       headers: {
         'Accept': 'application/json; charset=utf-8',
-        'Authorization': `Bearer ${token}`,
         'User-Agent': opts.userAgent || 'hotloop-sdk'
       }
     }
 
     this.axios = Axios.create(config)
+
+    this.axios.interceptors.request.use((config: AxiosRequestConfig) => {
+      if (!config.url) throw new Error('No URL in request config')
+      return this.tokenProvider.getBearerToken(config.url)
+        .then(token => {
+          config.headers['Authorization'] = `Bearer ${token}`
+          return config
+        })
+    })
 
     const retryConfig: IAxiosRetryConfig = {
       retries: opts.retries || 3,

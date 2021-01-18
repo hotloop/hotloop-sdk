@@ -1,9 +1,13 @@
 import * as nock from 'nock'
 import { HotLoop } from '../../../src/HotLoop'
 import { Endpoint } from '../../../src/Enums'
-import { SdkOptions, SyncCoverageOptions, SyncDeploymentOptions } from '../../../src/Options'
+import { SdkOptions, SyncCoverageOptions, SyncDeploymentOptions } from '../../../src'
+import { GcpTokenProvider, TokenProvider } from '../../../src/TokenProvider'
+import { createSandbox, SinonStubbedInstance } from 'sinon'
 
 describe('HotLoop', () => {
+  const sandbox = createSandbox()
+
   const url = 'http://localhost'
   const token = 'test-token'
   const repository = 'https://github.com/hotloop/hotloop-sdk'
@@ -30,14 +34,20 @@ describe('HotLoop', () => {
     'User-Agent': userAgent
   }
 
+  let tokenProvider: SinonStubbedInstance<TokenProvider>
   let hotloop: HotLoop
 
   beforeEach(() => {
-    hotloop = new HotLoop(url, token, options)
+    tokenProvider = sandbox.createStubInstance(GcpTokenProvider)
+    tokenProvider.getBearerToken
+      .resolves(token)
+
+    hotloop = new HotLoop(url, tokenProvider, options)
   })
 
   afterEach(() => {
     nock.cleanAll()
+    sandbox.restore()
   })
 
   describe('#syncDeployment', () => {
