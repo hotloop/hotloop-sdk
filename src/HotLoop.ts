@@ -28,12 +28,12 @@ interface HotLoopSdk {
 class HotLoopSdkFactory {
   /**
    * Get a hydrated HotLoopSdk instance
-   * @param token The HotLoop API token
+   * @param key The HotLoop API key
    * @param opts The SDK options
    */
-  static getInstance (token: string, opts: SdkOptions): HotLoopSdk {
+  static getInstance (key: string, opts: SdkOptions): HotLoopSdk {
     const url = 'https://europe-west3-hotloop-289416.cloudfunctions.net/'
-    const tokenProvider: TokenProvider = new GcpTokenProvider(token)
+    const tokenProvider: TokenProvider = new GcpTokenProvider(key)
     return new HotLoop(url, tokenProvider, opts)
   }
 }
@@ -66,8 +66,13 @@ class HotLoop implements HotLoopSdk {
     this.axios = Axios.create(config)
 
     this.axios.interceptors.request.use((config: AxiosRequestConfig) => {
+      if (!config.baseURL) throw new Error('No baseUrl in request config')
       if (!config.url) throw new Error('No URL in request config')
-      return this.tokenProvider.getBearerToken(config.url)
+
+      // config.url is not the full URL. Temporary solution, see https://github.com/axios/axios/pull/2555
+      const absoluteUrl = config.baseURL.replace(/\/+$/, '') + Axios.getUri(config)
+
+      return this.tokenProvider.getBearerToken(absoluteUrl)
         .then(token => {
           config.headers['Authorization'] = `Bearer ${token}`
           return config
