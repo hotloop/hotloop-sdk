@@ -3,7 +3,7 @@
  */
 enum Endpoint {
   SYNC_DEPLOYMENT = '/SyncDeployment',
-  SYNC_COVERAGE = '/HandlePR'
+  SYNC_COVERAGE = '/SyncCoverage'
 }
 
 /**
